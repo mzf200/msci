@@ -1,2 +1,49 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jan 11 15:37:02 2019
+
+@author: avinashmocherla
+"""
 import qutip as qt
+
+q = qt.Qobj(([0],[1]))
+
+
+def dressed_Hamiltonian(J, nu, nphonon, ldp, rabi):
+    """
+    Returns the dressed state Hamiltonian. In the form: 
+        H = H_mot + H_spinspin + H_int
+    
+    Args:
+        J: Number of ions in trap 
+        nu: trap frequency 
+        nphonon: maximum number of phonons in system
+        ldp: Lamb-Dicke Parameter
+        rabi: driving field rabi frequency
+        
+    """
+    
+    basis_m1 = qt.tensor(qt.basis(4,0))
+    basis_0 = qt.tensor(qt.basis(4,1))
+    basis_p1 = qt.tensor(qt.basis(4,2))
+    basis_0tag = qt.tensor(qt.basis(4,3))
+    
+    a = qt.tensor(qt.qeye(2), qt.qeye(2), qt.create(nphonon))
+    a_dag = qt.tensor(qt.qeye(2), qt.qeye(2) ,qt.destroy(nphonon))
+
+    sigmax_1 = qt.tensor(qt.sigmaz(), qt.qeye(2), qt.qeye(nphonon))
+    sigmax_2 = qt.tensor(qt.qeye(2), qt.sigmaz(), qt.qeye(nphonon))
+    
+    H_mot = nu * a * a_dag
+    
+    H_spinspin = nu * ldp * qt.tensor(sigmax_1, sigmax_2)
+    
+    H_int = \
+    (rabi/2) * np.exp(ldp*(a_dag - a)) * (qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) + qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4)))\
+    + (rabi/2) * np.exp(ldp*(a_dag - a)) * np.exp(ldp*(a_dag - a)) * (qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) + qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4)))\
+    + (rabi/2) * np.exp(ldp*(a_dag - a)) * np.exp(ldp*(a_dag - a)) * (qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) + qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4)))\
+    + (rabi/2) * np.exp(ldp*(a_dag - a)) * np.exp(ldp*(a_dag - a)) * (qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) + qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4)))\
+    
+
 
