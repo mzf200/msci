@@ -79,3 +79,6 @@ def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
 																					
 		
     H_spinspin = nu * H_spsp
+						
+							 
+							 
