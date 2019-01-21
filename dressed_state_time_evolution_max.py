@@ -51,29 +51,28 @@ def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
     H_mot = nu * a * a_dag
     
     for j in range(J):
-		H_int_j = (rabi/2) * np.exp(ldp[j]*(a_dag - a)) * (qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) +
-		qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4)) + (rabi/2) * np.exp(ldp[j]*(a_dag - a)) * np.exp(ldp*(a_dag - a)) *
-											(qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4))  +
-											 qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4))) +
-		(rabi/2) * np.exp(ldp[j]*(a_dag - a)) * np.exp(ldp*(a_dag - a)) *
-											(qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4))  +
-											 qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4))) +
-		(rabi/2) * np.exp(ldp[j]*(a_dag - a)) * np.exp(ldp*(a_dag - a)) *
-											(qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) +
-											 qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4)))
-		H_int_J[j]=H_int_j
+        pol,pol_dag = ldps[j]*(a_dag-a),-ldps[j]*(a_dag-a)
+        pol = pol.expm()
+        pol_dag = pol_dag.expm()
+        
+        H_int_j = (rabi/2) *((qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) +
+        qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4)))*pol +
+        (qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) +
+        qt.tensor(basis_m1* basis_0.trans()), qt.qeye(4))*
+        pol_dag)             
+        H_int_J[j]=H_int_j
     
     H_int_J = qt.tensor(H_int_J)
                                               
     eye_list = [qt.eye(4) for j in J]
     H_spsp = 0                                      
-	for j in range(J):
-        for k in range(j+1,J): #iteration to avoid double summation or summation over the same index.
-            H_temp = ldps[j]*ldps[k]*eye_list
-            H_temp[j] = sigmaz_fl
-            H_temp[k] = sigmaz_fl
-            H_temp = qt.tensor(H_temp)
-            H_spsp += H_temp
+    for j in range(J):
+       for k in range(j+1,J): #iteration to avoid double summation or summation over the same index.
+           H_temp = ldps[j]*ldps[k]*eye_list
+           H_temp[j] = sigmaz_fl
+           H_temp[k] = sigmaz_fl
+           H_temp = qt.tensor(H_temp)
+           H_spsp += H_temp
 																					
 		
     H_spinspin = nu * H_spsp
