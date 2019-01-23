@@ -55,31 +55,40 @@ def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
         pol = pol.expm()
         pol_dag = pol_dag.expm()
         
-        H_int_j = (rabi/2) *((qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) +
-        qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4)))*pol +
-        (qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) +
-        qt.tensor(basis_m1* basis_0.trans()), qt.qeye(4))*
-        pol_dag)             
+        H_int_j = (rabi/2) *((qt.tensor(basis_p1 * basis_0.trans(),pol) +
+        qt.tensor(basis_0 * basis_m1.trans(),pol)) +
+        (qt.tensor(basis_p1 * basis_0.trans(),pol_dag) +
+        qt.tensor(basis_m1* basis_0.trans(),pol_dag)))
+             
         H_int_J[j]=H_int_j
     
     H_int_J = qt.tensor(H_int_J)
                                               
-    eye_list = [qt.eye(4) for j in J]
-    H_spsp = 0                                      
-    for j in range(J):
+    eye_list = [qt.qeye(4) for j in range(J)]
+  #  H_spsp = 0                                      
+    for j in range(J-1):
        for k in range(j+1,J): #iteration to avoid double summation or summation over the same index.
-           H_temp = ldps[j]*ldps[k]*eye_list
+           print(j,k)
+           H_temp = eye_list
            H_temp[j] = sigmaz_fl
            H_temp[k] = sigmaz_fl
+           H_temp = ldps[j]*ldps[k]*H_temp
            H_temp = qt.tensor(H_temp)
-           H_spsp += H_temp
-																					
+           print(H_temp)
+           
+           if j==0 and k==1:
+               H_spsp = H_temp
+           else:
+               H_spsp += H_temp
+           print(H_spsp) 
+																	
 		
     H_spinspin = nu * H_spsp
                                                  
     return(H_int_J, H_mot, H_spinspin)
 	
-print (dressed_Hamiltonian(3,1,5,[1,1,2],2))
+# J, nu, nphonon, ldps, rabi
+print (dressed_Hamiltonian(J=3,nu=1,nphonon=5,ldps=[1,1,2],rabi=2))
 						
 							 
 							 
