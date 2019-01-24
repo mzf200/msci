@@ -7,12 +7,10 @@ Created on Fri Jan 11 15:37:02 2019
 """
 import qutip as qt
 import numpy as np
-import matplotlib.pyplot as plt
-# q = qt.Qobj(([0],[1]))
 
 
 
-def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
+def dressed_Hamiltonian(J, nu, nphonon, ldp, rabi):
     """
     Returns the dressed state Hamiltonian. In the form: 
         H = H_mot + H_spinspin + H_int
@@ -21,66 +19,63 @@ def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
         J: Number of ions in trap 
         nu: trap frequency 
         nphonon: maximum number of phonons in system
-        ldps: Lamb-Dicke Parameters
+        ldp: Lamb-Dicke Parameter
         rabi: driving field rabi frequency
         
     """
-    if len(ldps) != J:
-      raise Exception('There must be a Lamb-Dicke Parameter for each ion.')
-      
-    basis_m1 =   qt.basis(4,0)
-    basis_0 =    qt.basis(4,1)
-    basis_p1 =   qt.basis(4,2)
-    basis_0tag = qt.basis(4,3)
+    
 
+    """Dressed Basis States"""
+    basis_m1 = qt.tensor(qt.basis(4,0))
+    
+    basis_0 = qt.tensor(qt.basis(4,1))
+
+    basis_p1 = qt.tensor(qt.basis(4,2))
+
+    basis_0tag = qt.tensor(qt.basis(4,3))
+    
     sigmaz_fl = [[-1,0,0,0],
                  [0,0,0,0],
                  [0,0,1,0],
                  [0,0,0,0]]
     
     sigmaz_fl = qt.Qobj(sigmaz_fl)
-  
-    H_int_J = [0 for j in range(J)]
-    
-    a_dag = qt.create(nphonon)
-    a =     qt.destroy(nphonon)
+    """Motional mode operators"""
+    a = qt.tensor(qt.qeye(4), qt.qeye(4), qt.destroy(nphonon))
 
-#     sigmaz = qt.tensor(qt.sigmaz(), qt.qeye(2), qt.qeye(nphonon))
-#     sigmax_2 = qt.tensor(qt.qeye(2), qt.sigmaz(), qt.qeye(nphonon))
+    a_dag = qt.tensor(qt.qeye(4), qt.qeye(4) ,qt.create(nphonon))
+
+    """Spin Spin Operators"""
+    sigmaz_1 = qt.tensor(sigmaz_fl, qt.qeye(4), qt.qeye(nphonon))
+
+    sigmaz_2 = qt.tensor(qt.qeye(4), sigmaz_fl, qt.qeye(nphonon))
+
+    """More Spin-Spin Operators""" 
     
-    H_mot = nu * a * a_dag
+
+    c1 = qt.tensor((basis_p1 * basis_0.trans()), qt.qeye(4),qt.qeye(nphonon) )
+ 
     
-    for j in range(J):
-		H_int_j = \
-		(rabi/2) * np.exp(ldp[j]*(a_dag - a)) * (qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) + 
-											  qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4)) + 
-		(rabi/2) * np.exp(ldp[j]*(a_dag - a)) * np.exp(ldp*(a_dag - a)) *
-											(qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4))  + 
-											 qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4))) +
-		(rabi/2) * np.exp(ldp[j]*(a_dag - a)) * np.exp(ldp*(a_dag - a)) * 
-											(qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4))  + 
-											 qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4))) +  
-		(rabi/2) * np.exp(ldp[j]*(a_dag - a)) * np.exp(ldp*(a_dag - a)) * 
-											(qt.tensor(basis_p1 * basis_0.trans(), qt.qeye(4)) + 
-											 qt.tensor(basis_0 * basis_m1.trans(), qt.qeye(4)))
-		H_int_J[j]=H_int_j
+    c2 = qt.tensor((basis_0 * basis_m1.trans()), qt.qeye(4), qt.qeye(nphonon))
+
     
-    H_int_J = qt.tensor(H_int_J)
-                                              
-    eye_list = [qt.eye(4) for j in J]
-    H_spsp = 0                                      
-	for j in range(J):
-        for k in range(j+1,J): #iteration to avoid double summation or summation over the same index.
-            H_temp = ldps[j]*ldps[k]*eye_list
-            H_temp[j] = sigmaz_fl
-            H_temp[k] = sigmaz_fl
-            H_temp = qt.tensor(H_temp)
-            H_spsp += H_temp
-																					
-		
-    H_spinspin = nu * H_spsp
-                                                 
-    return(H_int_J, H_mot, H_spinspin)
-						
-							 
+    c3 = qt.tensor(qt.qeye(4), (basis_p1 * basis_0.trans()), qt.qeye(nphonon))
+
+    
+    c4 = qt.tensor(qt.qeye(4), (basis_0 * basis_m1.trans()), qt.qeye(nphonon))
+
+    t1 = (c1 + c2) * (ldp*(a_dag - a)).expm()   + (c1.trans() + c1.trans()) * (ldp*(a_dag - a)).expm()
+    
+    t2 = (c3 + c4) * (ldp*(a_dag - a)).expm() + (c3.trans() + c4.trans()) * (ldp*(a_dag - a)).expm()
+
+    
+    H_mot = nu * a_dag * a #For future reference, a potential problem could be that this is zero indexed. 
+ 
+    H_spinspin =  nu * ldp * (sigmaz_1 * sigmaz_2)
+    
+    H_int =  ( t1 + t2 )
+    print(H_int)
+   
+    
+    return H_mot + H_spinspin + H_int	 
 							 
