@@ -169,23 +169,23 @@ def time_evol(psi0,H,t0,T,dt,display_progress=True):
     times = np.arange(t0,T,dt)
     
     optns = qt.Options()
-    optns.nsteps = 100000
+    optns.nsteps = 10000
    # print(optns)
     return(qt.mesolve(H,psi0,times,progress_bar=display_progress,options = optns))
     
 #%%   
 ion_no = 2
-phonon_no = 3    
+phonon_no = 3
 
-ham, drup, drdn = dressed_Hamiltonian(J=ion_no,nu=1,nphonon=phonon_no,ldps=[1,1],rabi=1)
+ham, drup, drdn = dressed_Hamiltonian(J=ion_no,nu=2*np.pi*459.341E3,nphonon=phonon_no,ldps=[0.0041,-0.0041],rabi=np.sqrt(2)*2*np.pi*45.4E3)
  
 
 
 t0=0
-T=1
-dt=0.0001
+T=1E-2
+dt = 1E-6
 
-res = time_evol(drup,ham,t0,T,dt,True)
+res = time_evol(drdn,ham,t0,T,dt,True)
 states = res.states
 
 overlap = drup.trans()*states
