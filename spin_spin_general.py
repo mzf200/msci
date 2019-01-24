@@ -12,6 +12,8 @@ import copy as cp
 
 np.set_printoptions(threshold=np.nan)
 
+#%%
+
 def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
    
     
@@ -128,9 +130,106 @@ def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
 																	
 		
     H_spinspin = nu * qt.tensor(H_spsp,qt.qeye(nphonon))
-                                                 
-    return(H_int_J + H_spinspin + H_mot)
+    
+    eig_up = [0.5*basis_p1 + 0.5*basis_m1 + (1./(np.sqrt(2)))*basis_0\
+              for j in range(J)]
+
+    eig_dn = [0.5*basis_p1 + 0.5*basis_m1 - (1./(np.sqrt(2)))*basis_0\
+              for j in range(J)]
+    
+    eig_up.append(qt.qeye(nphonon))
+    eig_dn.append(qt.qeye(nphonon))
+    
+    eig_up = qt.tensor(eig_up)
+    eig_dn = qt.tensor(eig_dn)
+    
+                                             
+    return (H_int_J + H_spinspin + H_mot), eig_up, eig_dn
 	
 # J, nu, nphonon, ldps, rabi
-print(dressed_Hamiltonian(J=2,nu=1,nphonon=3,ldps=[1,1],rabi=1))
-						
+#print(dressed_Hamiltonian(J=2,nu=1,nphonon=3,ldps=[1,1],rabi=1))
+#%%
+
+def time_evol(psi0,H,t0,T,dt,display_progress=True):
+    '''
+    Simulate the unitary time evolution for a given Hamiltonian over a certain
+    timespan. Then return output data and plot if desired.
+    
+    Arguments:
+        psi0 - Initial state of system.
+        H - The Hamiltonian to be applied in the time evolution unitary.
+        dt - The increment between calculated points in the simulation.
+        t0 - Start time of simulation
+        T - End time of simulation
+        display_progress - Choose whether to show progress of simulation whilst
+                           it runs.
+        plot - Boolean to set whether a graph is plotted.
+    
+    '''
+    times = np.arange(t0,T,dt)
+    
+    optns = qt.Options()
+    optns.nsteps = 100000
+   # print(optns)
+    return(qt.mesolve(H,psi0,times,progress_bar=display_progress,options = optns))
+    
+#%%   
+ion_no = 2
+phonon_no = 3    
+
+ham, drup, drdn = dressed_Hamiltonian(J=ion_no,nu=1,nphonon=phonon_no,ldps=[1,1],rabi=1)
+ 
+
+
+t0=0
+T=1
+dt=0.0001
+
+res = time_evol(drup,ham,t0,T,dt,True)
+states = res.states
+
+overlap = drup.trans()*states
+probabilities = drup.trans()*states * states.trans()*drup
+
+# =============================================================================
+# 
+# 
+# up_states = []
+# down_states = []
+# 
+# for i in range(len(states)):
+#     up_states.append(states[i][0])
+#     down_states.append(states[i][1])
+#     
+# up_states,down_states = np.array(up_states),np.array(down_states)
+# 
+# up_prob,down_prob = np.absolute(up_states).flatten(),np.absolute(down_states).flatten()
+# print(up_prob)
+# =============================================================================
+plt.plot(res.times,probabilities)
+plt.show()
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				
