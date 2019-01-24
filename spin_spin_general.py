@@ -133,16 +133,17 @@ def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
     
     eig_up = [0.5*basis_p1 + 0.5*basis_m1 + (1./(np.sqrt(2)))*basis_0\
               for j in range(J)]
+  #  print(eig_up)
 
     eig_dn = [0.5*basis_p1 + 0.5*basis_m1 - (1./(np.sqrt(2)))*basis_0\
               for j in range(J)]
     
-    eig_up.append(qt.qeye(nphonon))
-    eig_dn.append(qt.qeye(nphonon))
+    eig_up.append(qt.basis(nphonon,0))
+    eig_dn.append(qt.basis(nphonon,0))
     
     eig_up = qt.tensor(eig_up)
     eig_dn = qt.tensor(eig_dn)
-    
+    print(eig_up)
                                              
     return (H_int_J + H_spinspin + H_mot), eig_up, eig_dn
 	
@@ -171,7 +172,7 @@ def time_evol(psi0,H,t0,T,dt,display_progress=True):
     optns = qt.Options()
     optns.nsteps = 10000
    # print(optns)
-    return(qt.mesolve(H,psi0,times,progress_bar=display_progress,options = optns))
+    return(qt.sesolve(H,psi0,times,progress_bar=display_progress,options = optns))
     
 #%%   
 ion_no = 2
