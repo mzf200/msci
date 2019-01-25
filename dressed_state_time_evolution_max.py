@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import copy as cp 
 # q = qt.Qobj(([0],[1]))
 
-
+#%%
 
 def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
     """
@@ -100,6 +100,10 @@ def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
                                                  
     return(H_int_J, H_mot, H_spinspin)
 	
+#%%
+
+    
+    
 # J, nu, nphonon, ldps, rabi
 print (dressed_Hamiltonian(J=2,nu=1,nphonon=3,ldps=[1,1],rabi=1))
 						
