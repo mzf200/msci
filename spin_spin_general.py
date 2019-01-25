@@ -8,6 +8,7 @@ import qutip as qt
 import numpy as np
 import matplotlib.pyplot as plt
 import copy as cp 
+
 # q = qt.Qobj(([0],[1]))
 
 np.set_printoptions(threshold=np.nan)
@@ -64,6 +65,13 @@ def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
     a =     qt.tensor(eye_temp)
 
     """ Motional Hamiltonian """      
+
+    
+    
+    
+    
+    
+    
     
     H_mot = nu * a_dag * a
     
@@ -145,23 +153,27 @@ def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
     eig_dn = qt.tensor(eig_dn)
     print(eig_up)
                                              
-    return (H_int_J + H_spinspin + H_mot), eig_up, eig_dn
+    return (H_int_J + H_spinspin + H_mot)
 	
 # J, nu, nphonon, ldps, rabi
 #print(dressed_Hamiltonian(J=2,nu=1,nphonon=3,ldps=[1,1],rabi=1))
 #%%
 
-def time_evol(psi0,H,t0,T,dt,display_progress=True):
+def time_evol(H, psi0, psif, t0, T, dt, display_progress=True, plot=True):
     '''
     Simulate the unitary time evolution for a given Hamiltonian over a certain
     timespan. Then return output data and plot if desired.
     
     Arguments:
-        psi0 - Initial state of system.
+        
         H - The Hamiltonian to be applied in the time evolution unitary.
-        dt - The increment between calculated points in the simulation.
+        psi0 - Initial state of system.
+        psif - Final (desired) state of system against which to check fidelity
         t0 - Start time of simulation
         T - End time of simulation
+        dt - Time increment
+        
+       
         display_progress - Choose whether to show progress of simulation whilst
                            it runs.
         plot - Boolean to set whether a graph is plotted.
@@ -170,46 +182,68 @@ def time_evol(psi0,H,t0,T,dt,display_progress=True):
     times = np.arange(t0,T,dt)
     
     optns = qt.Options()
-    optns.nsteps = 10000
-   # print(optns)
-    return(qt.sesolve(H,psi0,times,progress_bar=display_progress,options = optns))
     
-#%%   
-ion_no = 2
-phonon_no = 3
+    optns.nsteps = 10000
+   
+    results = qt.sesolve(H,psi0,times,options = optns)
+    states = results.states
+    
+    fidelities = []
+    
+    for i in states:
+            fidelities.append(qt.fidelity(i,psif))
+    
+    if plot==True:
 
-ham, drup, drdn = dressed_Hamiltonian(J=ion_no,nu=2*np.pi*459.341E3,nphonon=phonon_no,ldps=[0.0041,-0.0041],rabi=np.sqrt(2)*2*np.pi*45.4E3)
- 
+        plt.plot(times, fidelities)
+        plt.show()
+        
 
+   # print(optns)
+    return(fidelities)
+    
+#%%  
+        
+"""System Params"""    
+J = 2
+nu = 2*np.pi*459.341e3
+nphonon = 3
+ldps=[0.0041,-0.0041]
+rabi= np.sqrt(2)*2*np.pi*45.4e3
 
+"""basis definitions"""   
+basis_m1 =   qt.basis(4,0)
+basis_0 =    qt.basis(4,1)
+basis_p1 =   qt.basis(4,2)
+basis_0tag = qt.basis(4,3)
+
+eig_up = [0.5*basis_p1 + 0.5*basis_m1 + (1./(np.sqrt(2)))*basis_0\
+              for j in range(2)]
+eig_up.append(qt.basis(nphonon,0))
+eig_up = qt.tensor(eig_up)
+    
+D = [(1/np.sqrt(2)) * basis_p1 - (1/np.sqrt(2))*basis_m1 for j in range(J)]
+D.append(qt.basis(nphonon,0))
+D = qt.tensor(D)
+"""TimeEvol Params"""    
 t0=0
-T=1E-2
-dt = 1E-6
+T=1
+dt = 1e-4
+psi0 = qt.tensor(qt.basis(4,0), qt.basis(4,0), qt.basis(nphonon,0))
+psif = D
 
-res = time_evol(drdn,ham,t0,T,dt,True)
-states = res.states
 
-overlap = drup.trans()*states
-probabilities = drup.trans()*states * states.trans()*drup
+H = dressed_Hamiltonian(J,nu,nphonon,ldps, rabi)
 
-# =============================================================================
-# 
-# 
-# up_states = []
-# down_states = []
-# 
-# for i in range(len(states)):
-#     up_states.append(states[i][0])
-#     down_states.append(states[i][1])
-#     
-# up_states,down_states = np.array(up_states),np.array(down_states)
-# 
-# up_prob,down_prob = np.absolute(up_states).flatten(),np.absolute(down_states).flatten()
-# print(up_prob)
-# =============================================================================
-plt.plot(res.times,probabilities)
-plt.show()
-		
+fidelities = time_evol(H, psi0, psif, t0,T,dt, True, True)
+
+
+
+
+
+
+
+
 
 
 
