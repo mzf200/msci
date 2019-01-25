@@ -143,7 +143,6 @@ def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
     
     eig_up = qt.tensor(eig_up)
     eig_dn = qt.tensor(eig_dn)
-    print(eig_up)
                                              
     return (H_int_J + H_spinspin + H_mot), eig_up, eig_dn
 	
@@ -189,9 +188,15 @@ dt = 1E-6
 res = time_evol(drdn,ham,t0,T,dt,True)
 states = res.states
 
-overlap = drup.trans()*states
-probabilities = drup.trans()*states * states.trans()*drup
-
+print(states)
+# =============================================================================
+# 
+# for j in range(len((states)):
+#     
+# overlap = drup.trans()*states
+# probabilities = drup.trans()*states * states.trans()*drup
+# 
+# =============================================================================
 # =============================================================================
 # 
 # 
