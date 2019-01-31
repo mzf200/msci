@@ -7,24 +7,28 @@ Created on Fri Jan 11 15:37:02 2019
 """
 import qutip as qt
 import numpy as np
+import matplotlib.pyplot as plt
+
+np.set_printoptions(threshold=np.nan)
 
 
 
-def dressed_Hamiltonian(J, nu, nphonon, ldp, rabi):
+def dressed_Hamiltonian(J, basis = 0, nu=1, nphonon=1, ldp=1, rabi=1, spinspin = True):
     """
     Returns the dressed state Hamiltonian. In the form: 
         H = H_mot + H_spinspin + H_int
     
     Args:
         J: Number of ions in trap 
+        basis: 0 (bare) or 1(dressed) is the working basis 
         nu: trap frequency 
         nphonon: maximum number of phonons in system
         ldp: Lamb-Dicke Parameter
-        rabi: driving field rabi frequency
-        
+        rabi: driving field rabi frequency     
+        terms: return 
     """
     
-
+    H = qt.Qobj( np.zeros(shape=(4**J,4**J)), dims = [[4,4],[4,4]],)
     """Dressed Basis States"""
     basis_m1 = qt.tensor(qt.basis(4,0))
     
@@ -34,48 +38,136 @@ def dressed_Hamiltonian(J, nu, nphonon, ldp, rabi):
 
     basis_0tag = qt.tensor(qt.basis(4,3))
     
-    sigmaz_fl = [[-1,0,0,0],
+    sigma_z = [[-1,0,0,0],
                  [0,0,0,0],
                  [0,0,1,0],
                  [0,0,0,0]]
     
-    sigmaz_fl = qt.Qobj(sigmaz_fl)
+    sigma_z = qt.Qobj(sigma_z)
     """Motional mode operators"""
-    a = qt.tensor(qt.qeye(4), qt.qeye(4), qt.destroy(nphonon))
+    a = qt.tensor(qt.qeye(4), qt.qeye(4))
 
-    a_dag = qt.tensor(qt.qeye(4), qt.qeye(4) ,qt.create(nphonon))
+    a_dag = qt.tensor(qt.qeye(4), qt.qeye(4))
 
     """Spin Spin Operators"""
-    sigmaz_1 = qt.tensor(sigmaz_fl, qt.qeye(4), qt.qeye(nphonon))
+    sigmaz_1 = qt.tensor(sigma_z, qt.qeye(4))
 
-    sigmaz_2 = qt.tensor(qt.qeye(4), sigmaz_fl, qt.qeye(nphonon))
+    sigmaz_2 = qt.tensor(qt.qeye(4), sigma_z)
 
     """More Spin-Spin Operators""" 
     
+    if J == 1: 
+         c1 = basis_p1 * basis_0.trans()
+         c2 = basis_0 * basis_m1.trans()
+         t1 = (c1 + c2)  + (c1.trans() + c2.trans())
+         H_int = t1
+         H += H_int
+    
+    elif J == 2: 
+         c1 = basis_p1 * basis_0.trans()
+         c2 = basis_0 * basis_m1.trans()
+         t1 = (c1 + c2)  + (c1.trans() + c2.trans())
+    
+         H_int = qt.tensor(t1,t1)
+        
+         H += H_int
+         
 
-    c1 = qt.tensor((basis_p1 * basis_0.trans()), qt.qeye(4),qt.qeye(nphonon) )
- 
+    if spinspin == True:
+        H +=  nu * ldp * (sigmaz_1 * sigmaz_2)
+    else: pass 
+  
     
-    c2 = qt.tensor((basis_0 * basis_m1.trans()), qt.qeye(4), qt.qeye(nphonon))
+    return H
 
-    
-    c3 = qt.tensor(qt.qeye(4), (basis_p1 * basis_0.trans()), qt.qeye(nphonon))
 
+def time_evol(H, psi0, psif, t0 = 0, T = 10, dt = 1e-2, plot=True):
+    '''
+    Simulate the unitary time evolution for a given Hamiltonian over a certain
+    timespan. Then return output data and plot if desired.
     
-    c4 = qt.tensor(qt.qeye(4), (basis_0 * basis_m1.trans()), qt.qeye(nphonon))
-
-    t1 = (c1 + c2) * (ldp*(a_dag - a)).expm()   + (c1.trans() + c1.trans()) * (ldp*(a_dag - a)).expm()
+    Arguments:
+        
+        H - The Hamiltonian to be applied in the time evolution unitary.
+        psi0 - Initial state of system.
+        psif - Final (desired) state of system against which to check fidelity
+        t0 - Start time of simulation
+        T - End time of simulation
+        dt - Time increment
+        
+       
+        display_progress - Choose whether to show progress of simulation whilst
+                           it runs.
+        plot - Boolean to set whether a graph is plotted.
     
-    t2 = (c3 + c4) * (ldp*(a_dag - a)).expm() + (c3.trans() + c4.trans()) * (ldp*(a_dag - a)).expm()
-
+    '''
+    times = np.arange(t0,T,dt)
     
-    H_mot = nu * a_dag * a #For future reference, a potential problem could be that this is zero indexed. 
- 
-    H_spinspin =  nu * ldp * (sigmaz_1 * sigmaz_2)
     
-    H_int =  ( t1 + t2 )
-    print(H_int)
+    optns = qt.Options()
+    
+    optns.nsteps = 10000
    
+    results = qt.sesolve(H, psi0, times, options = optns)
+    states = results.states
     
-    return H_mot + H_spinspin + H_int	 
+    fidelities = []
+    
+    for i in states:
+            fidelities.append(qt.fidelity(i,psif))
+    
+    if plot==True:
+
+        plt.plot(times, fidelities)
+#        plt.ylim([0.96,1.04])
+        plt.show()
+        
+
+    return(fidelities)
+    
+#%%  
+
+def one_qubit_eigenbasis_check():
+    """
+    Find eigenstates of H_int for 1 qubit.
+    Evolves each eigenstate to check if stationary, as expected.
+    """
+    H = dressed_Hamiltonian(1, spinspin = False)
+    eigs = H.eigenstates()
+    eigs = eigs[1:]
+    for i in range(len(eigs[0])):
+        psi0 = eigs[0][i]
+        psif = psi0
+        fidelities = time_evol(H, psi0, psif)
+def two_qubit_eigenbasis_check():
+    """
+    Find eigenstates of H_int for 2 qubit.
+    Evolves each eigenstate to check if stationary, as expected.
+    """
+    H = dressed_Hamiltonian(2, spinspin = False)
+    eigs = H.eigenstates()
+    eigs = eigs[1:]
+    for i in range(len(eigs[0])):
+        psi0 = eigs[0][i]
+        psif = psi0
+        fidelities = time_evol(H, psi0, psif)
+    
+def test1(step):
+    """
+    Measures the effect of the spin spin interaction on the evolution 
+    varying strength interaction 
+    
+    Args:
+        step = number of times to increase spin-spin strength
+    """
+    ldp_strength = np.linspace(0,10,10)
+    for i in range(len(ldp_strength)):
+        H = dressed_Hamiltonian(2, ldp = ldp_strength[i], spinspin = True)
+        eigs = H.eigenstates()
+        psi0 = 1/np.sqrt(2) * (eigs[1][0] + eigs[1][6])
+        psif = psi0 
+        fidelities = time_evol(H, psi0, psif)
+
+
+
 							 
