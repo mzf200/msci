@@ -25,10 +25,10 @@ def dressed_Hamiltonian(J, basis = 0, nu=1, nphonon=1, ldp=1, rabi=1, spinspin =
         nphonon: maximum number of phonons in system
         ldp: Lamb-Dicke Parameter
         rabi: driving field rabi frequency     
-        terms: return 
+        spinspin: bool, include spinspin hamiltonian
     """
     
-    H = qt.Qobj( np.zeros(shape=(4**J,4**J)), dims = [[4,4],[4,4]],)
+    H = qt.Qobj( np.zeros(shape=(4**J,4**J)), dims = [[4 for j in range(J)],[4 for j in range(J)]],)
     """Dressed Basis States"""
     basis_m1 = qt.tensor(qt.basis(4,0))
     
@@ -60,8 +60,9 @@ def dressed_Hamiltonian(J, basis = 0, nu=1, nphonon=1, ldp=1, rabi=1, spinspin =
          c1 = basis_p1 * basis_0.trans()
          c2 = basis_0 * basis_m1.trans()
          t1 = (c1 + c2)  + (c1.trans() + c2.trans())
+         print(t1)
          H_int = t1
-         H += H_int
+         H += 0.5 * rabi * H_int
     
     elif J == 2: 
          c1 = basis_p1 * basis_0.trans()
@@ -70,7 +71,7 @@ def dressed_Hamiltonian(J, basis = 0, nu=1, nphonon=1, ldp=1, rabi=1, spinspin =
     
          H_int = qt.tensor(t1,t1)
         
-         H += H_int
+         H += 0.5 * rabi * H_int
          
 
     if spinspin == True:
@@ -111,19 +112,19 @@ def time_evol(H, psi0, psif, t0 = 0, T = 10, dt = 1e-2, plot=True):
     results = qt.sesolve(H, psi0, times, options = optns)
     states = results.states
     
-    fidelities = []
+    overlap = []
     
     for i in states:
-            fidelities.append(qt.fidelity(i,psif))
+            overlap.append(i.overlap(psif))
     
     if plot==True:
 
-        plt.plot(times, fidelities)
+        plt.plot(times, overlap)
 #        plt.ylim([0.96,1.04])
         plt.show()
         
 
-    return(fidelities)
+    return(overlap)
     
 #%%  
 
@@ -134,15 +135,16 @@ def one_qubit_eigenbasis_check():
     """
     H = dressed_Hamiltonian(1, spinspin = False)
     eigs = H.eigenstates()
+    print(eigs)
     eigs = eigs[1:]
     for i in range(len(eigs[0])):
         psi0 = eigs[0][i]
         psif = psi0
-        fidelities = time_evol(H, psi0, psif)
+        overlap = time_evol(H, psi0, psif)
 def two_qubit_eigenbasis_check():
     """
     Find eigenstates of H_int for 2 qubit.
-    Evolves each eigenstate to check if stationary, as expected.
+    Evolves each eigenstate to check if stationary, as expected.`
     """
     H = dressed_Hamiltonian(2, spinspin = False)
     eigs = H.eigenstates()
@@ -150,7 +152,7 @@ def two_qubit_eigenbasis_check():
     for i in range(len(eigs[0])):
         psi0 = eigs[0][i]
         psif = psi0
-        fidelities = time_evol(H, psi0, psif)
+        overlap = time_evol(H, psi0, psif)
     
 def test1(step):
     """
@@ -160,14 +162,18 @@ def test1(step):
     Args:
         step = number of times to increase spin-spin strength
     """
-    ldp_strength = np.linspace(0,10,10)
+    
+    ldp_strength = np.linspace(0,5,3)
     for i in range(len(ldp_strength)):
         H = dressed_Hamiltonian(2, ldp = ldp_strength[i], spinspin = True)
         eigs = H.eigenstates()
-        psi0 = 1/np.sqrt(2) * (eigs[1][0] + eigs[1][6])
-        psif = psi0 
-        fidelities = time_evol(H, psi0, psif)
+        eigs = eigs[1:]
+        print(eigs[0])
+        
+        for j in range(len(eigs[0])):
+            print(i,j)
+            psi0 = eigs[0][j]
+            psif = psi0 
+            overlap = time_evol(H, psi0, psif)
 
 
-
-							 
