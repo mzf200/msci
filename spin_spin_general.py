@@ -151,9 +151,9 @@ def dressed_Hamiltonian(J, nu, nphonon, ldps, rabi):
     
     eig_up = qt.tensor(eig_up)
     eig_dn = qt.tensor(eig_dn)
-    print(eig_up)
+   # print(eig_up)
                                              
-    return (H_int_J + H_spinspin + H_mot)
+    return (H_int_J)# + H_spinspin + H_mot)
 	
 # J, nu, nphonon, ldps, rabi
 #print(dressed_Hamiltonian(J=2,nu=1,nphonon=3,ldps=[1,1],rabi=1))
@@ -185,7 +185,7 @@ def time_evol(H, psi0, psif, t0, T, dt, display_progress=True, plot=True):
     
     optns.nsteps = 10000
    
-    results = qt.sesolve(H,psi0,times,options = optns)
+    results = qt.sesolve(H,psi0,times,progress_bar = display_progress,options = optns)
     states = results.states
     
     fidelities = []
@@ -208,7 +208,7 @@ def time_evol(H, psi0, psif, t0, T, dt, display_progress=True, plot=True):
 J = 2
 nu = 2*np.pi*459.341e3
 nphonon = 3
-ldps=[0.0041,-0.0041]
+ldps= [0.0041,-0.0041]
 rabi= np.sqrt(2)*2*np.pi*45.4e3
 
 """basis definitions"""   
@@ -227,10 +227,10 @@ D.append(qt.basis(nphonon,0))
 D = qt.tensor(D)
 """TimeEvol Params"""    
 t0=0
-T=1
+T=0.4
 dt = 1e-4
-psi0 = qt.tensor(qt.basis(4,0), qt.basis(4,0), qt.basis(nphonon,0))
-psif = D
+psi0 = eig_up #qt.tensor(qt.basis(4,0), qt.basis(4,0), qt.basis(nphonon,0))
+psif = psi0
 
 
 H = dressed_Hamiltonian(J,nu,nphonon,ldps, rabi)
